@@ -105,7 +105,7 @@ function Set-GACLContext {
         Write-Host "    [+] Retaining active SDK session ($($ctx.Account))..." -ForegroundColor DarkCyan
         $script:GACL_CurrentTenant = $TenantName
         # Intercept to ensure registry is primed
-        Invoke-GACLInterception -TenantName $TenantName | Out-Null
+        $null = Invoke-GACLInterception -TenantName $TenantName
         return $true
     }
 
@@ -113,7 +113,7 @@ function Set-GACLContext {
     if (-not [string]::IsNullOrEmpty($ConnectScript) -and (Test-Path $ConnectScript)) {
         Write-Host "    [+] Executing External Connection: $ConnectScript" -ForegroundColor DarkCyan
         . $ConnectScript
-        Invoke-GACLInterception -TenantName $TenantName | Out-Null
+        $null = Invoke-GACLInterception -TenantName $TenantName
         $script:GACL_CurrentTenant = $TenantName
         return $true
     }
@@ -135,7 +135,7 @@ function Set-GACLContext {
     
     try {
         Connect-MgGraph @params
-        Invoke-GACLInterception -TenantName $TenantName | Out-Null
+        $null = Invoke-GACLInterception -TenantName $TenantName
         $script:GACL_CurrentTenant = $TenantName
         return $true
     } catch {
@@ -177,7 +177,7 @@ function Prime-GACL {
 
     Write-Host "`n[!] GACL PRIMING PHASE: Capturing Authenticated Sessions..." -ForegroundColor Cyan
     foreach ($t in $TenantsToPrime) {
-        Set-GACLContext -TenantName $t.Name -TenantId $t.TenantId -ConnectScript $t.ConnectScript | Out-Null
+        $null = Set-GACLContext -TenantName $t.Name -TenantId $t.TenantId -ConnectScript $t.ConnectScript
     }
 
     if ($TenantsToPrime.Count -ge 2) {
@@ -186,13 +186,13 @@ function Prime-GACL {
         $t2 = $TenantsToPrime[1]
 
         Write-Host "  [Step 1] Switching back to $($t1.Name)..." -ForegroundColor DarkGray
-        Set-GACLContext -TenantName $t1.Name -TenantId $t1.TenantId -ConnectScript $t1.ConnectScript | Out-Null
+        $null = Set-GACLContext -TenantName $t1.Name -TenantId $t1.TenantId -ConnectScript $t1.ConnectScript
 
         Write-Host "  [Step 2] Switching to $($t2.Name)..." -ForegroundColor DarkGray
-        Set-GACLContext -TenantName $t2.Name -TenantId $t2.TenantId -ConnectScript $t2.ConnectScript | Out-Null
+        $null = Set-GACLContext -TenantName $t2.Name -TenantId $t2.TenantId -ConnectScript $t2.ConnectScript
 
         Write-Host "  [Step 3] Verification: Switching back to $($t1.Name)..." -ForegroundColor DarkGray
-        Set-GACLContext -TenantName $t1.Name -TenantId $t1.TenantId -ConnectScript $t1.ConnectScript | Out-Null
+        $null = Set-GACLContext -TenantName $t1.Name -TenantId $t1.TenantId -ConnectScript $t1.ConnectScript
     }
 
     return $TenantsToPrime
