@@ -19,7 +19,7 @@ function Initialize-GACL {
         [string]$TokenPath = "",
         [switch]$EnablePersistentStorage
     )
-    
+
     if ($EnablePersistentStorage -and $TokenPath) {
         $script:GACL_TokenPath = $TokenPath
         if (Test-Path $script:GACL_TokenPath) {
@@ -54,14 +54,14 @@ function Save-GACLState {
 function Invoke-GACLInterception {
     [CmdletBinding()]
     param([string]$TenantName)
-    
+
     try {
         # The core GACL logic: capture the session bearer token from the SDK's HTTP request
         $resp = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/organization?`$top=1" `
                                      -Method GET `
                                      -OutputType HttpResponseMessage `
                                      -ErrorAction SilentlyContinue
-        
+
         if ($resp -and $resp.RequestMessage.Headers.Authorization) {
             $token = $resp.RequestMessage.Headers.Authorization.Parameter
             if ($token) {
@@ -120,7 +120,7 @@ function Set-GACLContext {
 
     # 4. Manual/Interactive Fallback
     Write-Host "    [!] Manual/Interactive Authentication required for '$TenantName'..." -ForegroundColor Yellow
-    
+
     $tenantDesc = if ([string]::IsNullOrEmpty($TenantId)) { "the Common/Default endpoint" } else { "Tenant ID: $TenantId" }
     Write-Host "    [!] Action: A browser window will open for authentication to $tenantDesc." -ForegroundColor Cyan
     Write-Host "    [!] Note: Ensure you complete MFA if prompted." -ForegroundColor DarkCyan
@@ -129,10 +129,10 @@ function Set-GACLContext {
         Scopes    = @('Chat.Read.All', 'User.Read.All', 'AuditLog.Read.All', 'Organization.Read.All', 'offline_access')
         NoWelcome = $true
     }
-    if (-not [string]::IsNullOrEmpty($TenantId)) { 
-        $params['TenantId'] = $TenantId 
+    if (-not [string]::IsNullOrEmpty($TenantId)) {
+        $params['TenantId'] = $TenantId
     }
-    
+
     try {
         Connect-MgGraph @params
         Invoke-GACLInterception -TenantName $TenantName | Out-Null
@@ -153,7 +153,7 @@ function Prime-GACL {
     Write-Host "`n[?] SETUP: How many Tenants/Sessions do we need to prime for this scan?" -ForegroundColor Yellow
     $countStr = Read-Host "Number of Tenants"
     $count = 0
-    $TenantsToPrime = @()
+    $TenantsToPrime = [System.Collections.Generic.List[hashtable]]::new()
 
     if ([int]::TryParse($countStr, [ref]$count) -and $count -gt 0) {
         for ($i = 1; $i -le $count; $i++) {
@@ -161,15 +161,15 @@ function Prime-GACL {
             $name   = Read-Host "  Display Name (e.g., 'PrimaryTenant')"
             $tid    = Read-Host "  Tenant ID / GUID (optional, press Enter for manual/interactive)"
             $script = Read-Host "  Connect Script Path (optional, press Enter for manual/interactive)"
-            
-            $TenantsToPrime += @{
+
+            $TenantsToPrime.Add(@{
                 Name          = $name
                 TenantId      = $tid
                 ConnectScript = $script
-            }
+            })
         }
     } elseif ($ManualTenants.Count -gt 0) {
-        $TenantsToPrime = $ManualTenants
+        $TenantsToPrime.AddRange([hashtable[]]$ManualTenants)
     } else {
         Write-Host "  [-] No tenants provided to prime. Continuing with existing session." -ForegroundColor Gray
         return $null
