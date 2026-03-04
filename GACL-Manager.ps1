@@ -25,7 +25,7 @@ function Initialize-GACL {
         if (Test-Path $script:GACL_TokenPath) {
             Write-Host "  [GACL] Loading cached Identity Registry from $($script:GACL_TokenPath)..." -ForegroundColor Magenta
             try {
-                $cache = Get-Content $script:GACL_TokenPath | ConvertFrom-Json
+                $cache = Get-Content -Raw $script:GACL_TokenPath | ConvertFrom-Json
                 if ($cache.AuthTokens) {
                     foreach ($prop in $cache.AuthTokens.PSObject.Properties) {
                         $script:GACL_Registry[$prop.Name] = $prop.Value
